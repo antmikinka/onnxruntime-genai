@@ -90,6 +90,9 @@ void Shutdown() {
   }
 
   GetOrtGlobals().reset();  // Delete now because on process exit is too late
+#if USE_DML
+  CloseDmlInterface();
+#endif
 }
 
 OrtEnv& GetOrtEnv() {
