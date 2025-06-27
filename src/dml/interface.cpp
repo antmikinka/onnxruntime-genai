@@ -219,14 +219,14 @@ void InitDmlInterface(LUID* p_device_luid) {
 }
 
 void CloseDmlInterface() {
-  g_dml_device.reset();
   Dml::dml_device_.Reset();
-  Dml::dml_readback_heap_.reset();
-  Dml::dml_execution_context_.reset();
+  g_dml_device.reset();
   Dml::dml_pooled_upload_heap_.reset();
-  Dml::dml_api_ = nullptr;
-  Dml::dml_objects_ = {};
+  Dml::dml_execution_context_.reset();
+  Dml::dml_readback_heap_.reset();
   Dml::smart_directml_dll_.reset();
+  Dml::dml_objects_ = {};
+  Dml::ort_allocator_ = nullptr;
 }
 
 void SetDmlProvider(OrtSessionOptions& session_options) {
