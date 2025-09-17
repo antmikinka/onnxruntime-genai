@@ -3679,6 +3679,27 @@ class ChatGLMModel(Model):
         layer.self_attn = layer.self_attn if hasattr(layer, 'self_attn') else layer.self_attention
         super().make_layer(layer_id, layer)
 
+class GLM45Model(Model):
+    def __init__(self, config, io_dtype, onnx_dtype, ep, cache_dir, extra_options):
+        super().__init__(config, io_dtype, onnx_dtype, ep, cache_dir, extra_options)
+        
+        # RoPE attributes remain the same, based on the paper's description
+        # of partial RoPE and values from Table 1.
+        self.rope_attrs["partial_rotary_factor"] = 0.5
+        self.rope_attrs["num_heads"] = self.num_attn_heads
+        self.rope_attrs["rotary_embedding_dim"] = int(self.head_size * self.rope_attrs["partial_rotary_factor"])
+        self.rope_attrs["interleaved"] = 1
+
+    def make_attention(self, layer_id, q, k, v, past_k, past_v, past_seq_len, real_seq_len):
+        # The GLM-4.5 paper states it uses QK-Norm to stabilize attention logits.
+        # We use the newly identified `make_qk_norm` function from the base class.
+        q = self.make_qk_norm(q, self.hidden_size, self.num_attn_heads)
+        k = self.make_qk_norm(k, self.hidden_size, self.num_attn_heads)
+
+        # After applying QK-Norm, we call the original base class method
+        # to build the rest of the attention mechanism.
+        return super().make_attention(layer_id, q, k, v, past_k, past_v, past_seq_len, real_seq_len)
+
 
 class OLMoModel(Model):
     def __init__(self, config, io_dtype, onnx_dtype, ep, cache_dir, extra_options):
