@@ -3679,6 +3679,24 @@ class ChatGLMModel(Model):
         layer.self_attn = layer.self_attn if hasattr(layer, 'self_attn') else layer.self_attention
         super().make_layer(layer_id, layer)
 
+class GLM45Model(Model):
+    def __init__(self, config, io_dtype, onnx_dtype, ep, cache_dir, extra_options):
+        super().__init__(config, io_dtype, onnx_dtype, ep, cache_dir, extra_options)
+        
+        # GLM-4.5 uses partial RoPE, similar to ChatGLM.
+        # We assume a standard partial rotary factor of 0.5 as seen in related models.
+        self.rope_attrs["partial_rotary_factor"] = 0.5
+        
+        # Per Table 1, # Attention Heads is 96 and Attention Head Dim is 128.
+        self.rope_attrs["num_heads"] = self.num_attn_heads
+        self.rope_attrs["rotary_embedding_dim"] = int(self.head_size * self.rope_attrs["partial_rotary_factor"])
+        
+        # Assuming interleaved RoPE based on the ChatGLM implementation.
+        self.rope_attrs["interleaved"] = 1
+
+        # The paper also mentions using QK-Norm to stabilize attention logits.
+        # If the base Model class's make_attn method doesn't support QK-Norm,
+        # it would need to be overridden here to add that logic.
 
 class OLMoModel(Model):
     def __init__(self, config, io_dtype, onnx_dtype, ep, cache_dir, extra_options):
